@@ -1,12 +1,25 @@
 <script setup lang="ts">
     import { useGameStore } from '@/store/gameStore'
-    import { type Member, getMembers, setMember } from '@/types/house-of-legacy/member'
-    import { Type } from '@/types/house-of-legacy/vars'
-    import { computed, ref } from 'vue'
+    import { type Member, getMembers, updateMember } from '@/types/house-of-legacy/member'
+    import {
+        Type,
+        TypeName,
+        MemberTalentOptions,
+        MemberSkillOptions
+    } from '@/types/house-of-legacy/vars'
+    import { computed, ref, watchEffect } from 'vue'
     const fileupload = ref()
     const { data } = useGameStore()
     const messageVisible = ref(false)
     const messageInfo = ref('')
+    const editingRows = ref([])
+    const selected = ref(false)
+
+    const onRowEditSave = (event: any) => {
+        let { newData } = event
+        updateMember(newData)
+    }
+
     const showMessage = (msg: string) => {
         messageVisible.value = true
         messageInfo.value = msg
@@ -16,64 +29,45 @@
         }, 3500)
     }
 
-    const selected = ref(false)
-
-    const familys = computed(() => {
+    const showData = computed(() => {
         if (!data || !data.value) return []
-        let d = getMembers(Type.Family)
-        console.log(d)
-        return d
+        let familys = getMembers(Type.Family)
+        let spouses = getMembers(Type.Spouse)
+        let guests = getMembers(Type.Guest)
+        return {
+            familys,
+            spouses,
+            guests
+        }
     })
 
-    const spouses = computed(() => {
-        if (!data || !data.value) return []
-        let d = getMembers(Type.Spouse)
-        console.log(d)
-        return d
-    })
-
-    const guests = computed(() => {
-        if (!data || !data.value) return []
-        let d = getMembers(Type.Guest)
-        console.log(d)
-        return d
-    })
+    const getShowData = (type: Type): Member[] => {
+        if (type == Type.Family) {
+            return showData.value.familys
+        } else if (type == Type.Spouse) {
+            return showData.value.spouses
+        } else if (type == Type.Guest) {
+            return showData.value.guests
+        }
+        return []
+    }
 
     const upAll = (member: Member) => {
         if (!data || !data.value) {
             console.error('jsonData is null')
             return
         }
-        member.health = 100
-        member.mood = 100
-        member.charm = 100
-        member.lucky = 100
-        member.wen = 100
-        member.wu = 100
-        member.shang = 100
-        member.yi = 100
-        member.mou = 100
+        member.health = '100'
+        member.mood = '100'
+        member.charm = '100'
+        member.lucky = '100'
+        member.wen = '100'
+        member.wu = '100'
+        member.shang = '100'
+        member.yi = '100'
+        member.mou = '100'
 
-        setMember(Type.Family, member.idx, member)
-    }
-
-    const upFamilysAll = () => {
-        if (!data || !data.value) {
-            console.error('jsonData is null')
-            return
-        }
-        familys.value.forEach(member => {
-            upAll(member)
-        })
-    }
-    const upFamilysAge18 = () => {
-        if (!data || !data.value) {
-            console.error('jsonData is null')
-            return
-        }
-        familys.value.forEach(member => {
-            upAge18(member)
-        })
+        updateMember(member)
     }
 
     const upAge18 = (member: Member) => {
@@ -81,8 +75,47 @@
             console.error('jsonData is null')
             return
         }
-        member.age = 18
-        setMember(Type.Family, member.idx, member)
+        member.age = '18'
+        updateMember(member)
+    }
+
+    const upMembersAll = (type: Type) => {
+        if (!data || !data.value) {
+            console.error('jsonData is null')
+            return
+        }
+        if (type == Type.Family) {
+            showData.value.familys.forEach(member => {
+                upAll(member)
+            })
+        } else if (type == Type.Spouse) {
+            showData.value.spouses.forEach(member => {
+                upAll(member)
+            })
+        } else if (type == Type.Guest) {
+            showData.value.guests.forEach(member => {
+                upAll(member)
+            })
+        }
+    }
+    const upMembersAge18 = (type: Type) => {
+        if (!data || !data.value) {
+            console.error('jsonData is null')
+            return
+        }
+        if (type == Type.Family) {
+            showData.value.familys.forEach(member => {
+                upAge18(member)
+            })
+        } else if (type == Type.Spouse) {
+            showData.value.spouses.forEach(member => {
+                upAge18(member)
+            })
+        } else if (type == Type.Guest) {
+            showData.value.guests.forEach(member => {
+                upAge18(member)
+            })
+        }
     }
 
     const parse = async () => {
@@ -115,7 +148,7 @@
             return
         }
         try {
-            const jsonString = JSON.stringify(data.value, null, 2)
+            const jsonString = JSON.stringify(data.value, null, 0)
             const blob = new Blob([jsonString], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
 
@@ -161,359 +194,184 @@
         </ButtonGroup>
     </div>
     <div v-if="selected">
-        <Panel toggleable>
-            <template #header>
-                <h3>家族成员</h3>
-            </template>
-            <template #icons>
-                <ButtonGroup>
-                    <Button
-                        label="升满属性"
-                        @click.stop="upFamilysAll"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+        <template v-for="type in Type">
+            <Panel toggleable>
+                <template #header>
+                    <h3>{{ TypeName[type] }}</h3>
+                </template>
+                <template #icons>
+                    <ButtonGroup>
+                        <Button
+                            label="升满属性"
+                            @click.stop="upMembersAll(type)"
+                            size="small"
+                            severity="success"
+                            raised
+                            text
+                        />
+                        <Button
+                            label="18"
+                            @click.stop="upMembersAge18(type)"
+                            size="small"
+                            severity="success"
+                            raised
+                            text
+                        />
+                    </ButtonGroup>
+                </template>
+                <DataTable
+                    :value="getMembers(type)"
+                    tableStyle="min-width: 50rem"
+                    v-model:editingRows="editingRows"
+                    editMode="row"
+                    @row-edit-save="onRowEditSave"
+                    size="small"
+                >
+                    <Column
+                        field="name"
+                        header="名字"
                     />
-                    <Button
-                        label="18"
-                        @click.stop="upFamilysAge18"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+                    <Column
+                        header="性别"
+                    >
+                        <template #body="slotProps">
+                            {{ slotProps.data.gender === '1'? '男':'女' }}
+                        </template>
+                    </Column>
+                    <Column
+                        field="generation"
+                        header="第几代"
+                        v-if="type === Type.Family"
                     />
-                </ButtonGroup>
-            </template>
-            <DataTable
-                :value="familys"
-                tableStyle="min-width: 50rem"
-                editMode="row"
-                size="small"
-            >
-                <Column
-                    field="name"
-                    header="名字"
-                />
-                <Column
-                    field="generation"
-                    header="第几代"
-                />
-                <Column
-                    field="rank"
-                    header="爵位"
-                />
-                <Column
-                    field="reputation"
-                    header="声誉"
-                />
-                <Column
-                    field="stamina"
-                    header="体力"
-                />
-                <Column
-                    field="age"
-                    header="年龄"
-                />
-                <Column
-                    field="health"
-                    header="健康"
-                />
-                <Column
-                    field="mood"
-                    header="心情"
-                />
-                <Column
-                    field="charm"
-                    header="魅力"
-                />
-                <Column
-                    field="lucky"
-                    header="幸运"
-                />
-                <Column
-                    field="talent"
-                    header="天赋"
-                />
-                <Column
-                    field="talentValue"
-                    header="天赋数值"
-                />
-                <Column
-                    field="skill"
-                    header="技能"
-                />
-                <Column
-                    field="skillValue"
-                    header="技能数值"
-                />
-                <Column
-                    field="wen"
-                    header="文"
-                />
-                <Column
-                    field="wu"
-                    header="武"
-                />
-                <Column
-                    field="shang"
-                    header="商"
-                />
-                <Column
-                    field="yi"
-                    header="艺"
-                />
-                <Column
-                    field="mou"
-                    header="谋"
-                />
-                <Column :rowEditor="true" />
-                <Column>
-                    <template #body="{ data }">
-                        <ButtonGroup>
-                            <Button
-                                label="升满属性"
-                                @click="upAll(data)"
-                            />
-                            <Button
-                                label="18岁"
-                                @click="upAge18(data)"
-                            />
-                        </ButtonGroup>
-                    </template>
-                </Column>
-            </DataTable>
-        </Panel>
-        <Panel toggleable>
-            <template #header>
-                <h3>家族嫁娶成员</h3>
-            </template>
-            <template #icons>
-                <ButtonGroup>
-                    <Button
-                        label="升满属性"
-                        @click.stop="upFamilysAll"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+                    <Column
+                        field="rank"
+                        header="爵位"
+                        v-if="type === Type.Family"
                     />
-                    <Button
-                        label="18"
-                        @click.stop="upFamilysAge18"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+                    <Column
+                        field="reputation"
+                        header="声誉"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="stamina"
+                        header="体力"
                     />
-                </ButtonGroup>
-            </template>
-            <DataTable
-                :value="spouses"
-                tableStyle="min-width: 50rem"
-                editMode="row"
-                size="small"
-            >
-                <Column
-                    field="name"
-                    header="名字"
-                />
-                <Column
-                    field="reputation"
-                    header="声誉"
-                />
-                <Column
-                    field="stamina"
-                    header="体力"
-                />
-                <Column
-                    field="age"
-                    header="年龄"
-                />
-                <Column
-                    field="health"
-                    header="健康"
-                />
-                <Column
-                    field="mood"
-                    header="心情"
-                />
-                <Column
-                    field="charm"
-                    header="魅力"
-                />
-                <Column
-                    field="lucky"
-                    header="幸运"
-                />
-                <Column
-                    field="talent"
-                    header="天赋"
-                />
-                <Column
-                    field="talentValue"
-                    header="天赋数值"
-                />
-                <Column
-                    field="skill"
-                    header="技能"
-                />
-                <Column
-                    field="skillValue"
-                    header="技能数值"
-                />
-                <Column
-                    field="wen"
-                    header="文"
-                />
-                <Column
-                    field="wu"
-                    header="武"
-                />
-                <Column
-                    field="shang"
-                    header="商"
-                />
-                <Column
-                    field="yi"
-                    header="艺"
-                />
-                <Column
-                    field="mou"
-                    header="谋"
-                />
-                <Column :rowEditor="true" />
-                <Column>
-                    <template #body="{ data }">
-                        <ButtonGroup>
-                            <Button
-                                label="升满属性"
-                                @click="upAll(data)"
-                            />
-                            <Button
-                                label="18岁"
-                                @click="upAge18(data)"
-                            />
-                        </ButtonGroup>
-                    </template>
-                </Column>
-            </DataTable>
-        </Panel>
-        <Panel toggleable>
-            <template #header>
-                <h3>门客</h3>
-            </template>
-            <template #icons>
-                <ButtonGroup>
-                    <Button
-                        label="升满属性"
-                        @click.stop="upFamilysAll"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+                    <Column
+                        field="age"
+                        header="年龄"
                     />
-                    <Button
-                        label="18"
-                        @click.stop="upFamilysAge18"
-                        size="small"
-                        severity="success"
-                        raised
-                        text
+                    <Column
+                        field="health"
+                        header="健康"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="mood"
+                        header="心情"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="charm"
+                        header="魅力"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="lucky"
+                        header="幸运"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column header="天赋">
+                        <template #body="slotProps">
+                            {{ MemberTalentOptions[slotProps.data.talent].label }}
+                        </template>
+                    </Column>
+                    <Column
+                        field="talentValue"
+                        header="天赋数值"
                     />
-                </ButtonGroup>
-            </template>
-            <DataTable
-                :value="guests"
-                tableStyle="min-width: 50rem"
-                editMode="row"
-                size="small"
-            >
-                <Column
-                    field="name"
-                    header="名字"
-                />
-                <Column
-                    field="reputation"
-                    header="声誉"
-                />
-                <Column
-                    field="stamina"
-                    header="体力"
-                />
-                <Column
-                    field="age"
-                    header="年龄"
-                />
-                <Column
-                    field="health"
-                    header="健康"
-                />
-                <Column
-                    field="mood"
-                    header="心情"
-                />
-                <Column
-                    field="charm"
-                    header="魅力"
-                />
-                <Column
-                    field="lucky"
-                    header="幸运"
-                />
-                <Column
-                    field="talent"
-                    header="天赋"
-                />
-                <Column
-                    field="talentValue"
-                    header="天赋数值"
-                />
-                <Column
-                    field="skill"
-                    header="技能"
-                />
-                <Column
-                    field="skillValue"
-                    header="技能数值"
-                />
-                <Column
-                    field="wen"
-                    header="文"
-                />
-                <Column
-                    field="wu"
-                    header="武"
-                />
-                <Column
-                    field="shang"
-                    header="商"
-                />
-                <Column
-                    field="yi"
-                    header="艺"
-                />
-                <Column
-                    field="mou"
-                    header="谋"
-                />
-                <Column :rowEditor="true" />
-                <Column>
-                    <template #body="{ data }">
-                        <ButtonGroup>
-                            <Button
-                                label="升满属性"
-                                @click="upAll(data)"
-                            />
-                            <Button
-                                label="18岁"
-                                @click="upAge18(data)"
-                            />
-                        </ButtonGroup>
-                    </template>
-                </Column>
-            </DataTable>
-        </Panel>
+                    <Column header="技能">
+                        <template #body="slotProps">
+                            {{ MemberSkillOptions[slotProps.data.skill].label }}
+                        </template>
+                    </Column>
+                    <Column
+                        field="skillValue"
+                        header="技能数值"
+                    />
+                    <Column
+                        field="wen"
+                        header="文"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="wu"
+                        header="武"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="shang"
+                        header="商"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="yi"
+                        header="艺"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column
+                        field="mou"
+                        header="谋"
+                    >
+                        <template #editor="{ data, field }">
+                            <InputText v-model="data[field]" />
+                        </template>
+                    </Column>
+                    <Column :rowEditor="true" />
+                    <Column>
+                        <template #body="{ data }">
+                            <ButtonGroup>
+                                <Button
+                                    label="升满属性"
+                                    @click.stop="upAll(data)"
+                                />
+                                <Button
+                                    label="18岁"
+                                    @click.stop="upAge18(data)"
+                                />
+                            </ButtonGroup>
+                        </template>
+                    </Column>
+                </DataTable>
+            </Panel>
+        </template>
     </div>
     <Message
         v-if="messageVisible"
