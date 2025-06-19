@@ -1,0 +1,12 @@
+# 忽略构建输出
+dist
+build
+
+# 忽略依赖
+node_modules
+
+# 忽略其他不需要格式化的文件
+*.md
+*.yml
+*.yaml
+*.json 
