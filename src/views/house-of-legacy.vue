@@ -129,6 +129,18 @@
             })
         }
     }
+    const clearPayment = (type: MemberType) => {
+        if (!game.parsed) {
+            console.error('jsonData is null')
+            return
+        }
+        if (type === MemberType.Guest) {
+            showData.value.guests.forEach(member => {
+                member.payment = '0'
+                updateMember(member)
+            })
+        }
+    }
 
     const parse = async () => {
         console.log('parse')
@@ -238,8 +250,16 @@
                                 text
                             />
                             <Button
-                                label="18"
+                                label="18岁"
                                 @click.stop="upMembersAge18(type)"
+                                size="small"
+                                raised
+                                text
+                                v-if="type === MemberType.Guest"
+                            />
+                            <Button
+                                label="0薪酬"
+                                @click.stop="clearPayment(type)"
                                 size="small"
                                 raised
                                 text

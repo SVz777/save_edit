@@ -17,12 +17,11 @@ export const MemberTypeName: Record<MemberType, string> = {
     [MemberType.Guest]: '门客成员'
 }
 
-
-export const MemberRankOptions = function (): { value: string; label: string }[] {
+export const MemberRankOptions = (function (): { value: string; label: string }[] {
     const ranks = {
         '1': '伯',
         '2': '侯',
-        '3': '公',
+        '3': '公'
     }
     const locs = {
         '1': '汉阳',
@@ -48,14 +47,14 @@ export const MemberRankOptions = function (): { value: string; label: string }[]
         })
     })
     return options
-}()
+})()
 
 export const MemberTalentOptions = [
     { value: '0', label: '无' },
     { value: '1', label: '文' },
     { value: '2', label: '武' },
     { value: '3', label: '商' },
-    { value: '4', label: '艺' },
+    { value: '4', label: '艺' }
 ]
 export const MemberSkillOptions = [
     { value: '0', label: '无' },
@@ -64,7 +63,7 @@ export const MemberSkillOptions = [
     { value: '3', label: '相' },
     { value: '4', label: '卜' },
     { value: '5', label: '魅' },
-    { value: '6', label: '工' },
+    { value: '6', label: '工' }
 ]
 export const MemberLikeOptions = [
     { value: '0', label: '香粉' },
@@ -76,7 +75,7 @@ export const MemberLikeOptions = [
     { value: '6', label: '瓷器' },
     { value: '7', label: '美酒' },
     { value: '8', label: '琴瑟' },
-    { value: '9', label: '毛皮' },
+    { value: '9', label: '毛皮' }
 ]
 export const MemberNatureOptions = [
     { value: '0', label: '无' },
@@ -93,7 +92,7 @@ export const MemberNatureOptions = [
     { value: '11', label: '凶狠' },
     { value: '12', label: '善变' },
     { value: '13', label: '忧郁' },
-    { value: '14', label: '多疑' },
+    { value: '14', label: '多疑' }
 ]
 
 export const MemberStatusOptions = [
@@ -121,7 +120,7 @@ export const MemberStatusOptions = [
     { value: '21', label: '私人教习' },
     { value: '22', label: '戏台演出' },
     { value: '23', label: '私塾教学' },
-    { value: '24', label: '武场教学' },
+    { value: '24', label: '武场教学' }
 ]
 
 export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
@@ -239,7 +238,7 @@ const InfoIndex: Record<string, number> = {
     life: 5,
     skill: 6,
     lucky: 7,
-    like: 9,
+    like: 9
 }
 
 export interface Member {
@@ -293,6 +292,7 @@ export function getMembers(type: MemberType): Member[] {
             health: _.get(member, index.health),
             mood: _.get(member, index.mood),
             charm: _.get(member, index.charm),
+            skillValue: _.get(member, index.skillValue),
             wen: _.get(member, index.wen),
             wu: _.get(member, index.wu),
             shang: _.get(member, index.shang),

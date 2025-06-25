@@ -22,20 +22,20 @@
             v-for="(card, index) in cards"
             :key="index"
         >
-            <router-link :to="card.path">
-                <Card class="card">
-                    <template #header>
+            <Card class="card">
+                <template #header>
+                    <router-link :to="card.path">
                         <img
                             style="height: 100%; width: 100%"
                             alt="logo"
                             :src="card.img"
                         />
-                    </template>
-                    <template #title>
-                        {{ card.title }}
-                    </template>
-                </Card>
-            </router-link>
+                    </router-link>
+                </template>
+                <template #title>
+                    {{ card.title }}
+                </template>
+            </Card>
         </template>
     </div>
 </template>
