@@ -1,12 +1,12 @@
 <script setup lang="ts">
-    import { ref, onMounted } from 'vue'
     import { useGameStore } from '@/store/gameStore'
 
-    let game = useGameStore()
-    onMounted(() => {})
+    let { game } = useGameStore()
+    window.game = game
 </script>
 
 <template>
+    <Toast />
     <router-view />
 </template>
 

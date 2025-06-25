@@ -13,6 +13,7 @@
     "@primevue/auto-import-resolver": "^4.3.5",
     "@vueuse/core": "^13.1.0",
     "dayjs": "^1.11.13",
+    "lodash": "^4.17.21",
     "pinia": "^3.0.2",
     "pinia-plugin-persistedstate": "^4.2.0",
     "primeflex": "^4.0.0",
@@ -24,6 +25,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.18",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/tsconfig": "^0.7.0",

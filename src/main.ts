@@ -4,6 +4,7 @@ import './style.css'
 import App from './App.vue'
 import PrimeVue from 'primevue/config'
 import { definePreset } from '@primeuix/themes'
+import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura'
 import router from './router'
 
@@ -65,6 +66,7 @@ createApp(App)
             preset: MyPreset
         }
     })
+    .use(ToastService)
     .mount('#app')
 
 declare module 'vue' {
@@ -74,6 +76,6 @@ declare module 'vue' {
 }
 declare global {
     interface Window {
-
+        game: any
     }
 }

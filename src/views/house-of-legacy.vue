@@ -1,17 +1,22 @@
 <script setup lang="ts">
     import { useGameStore } from '@/store/gameStore'
-    import { type Member, getMembers, updateMember } from '@/types/house-of-legacy/member'
     import {
-        Type,
-        TypeName,
+        type Member,
+        MemberType,
+        MemberTypeName,
+        getMembers,
+        updateMember,
+        MemberRankOptions,
         MemberTalentOptions,
-        MemberSkillOptions
-    } from '@/types/house-of-legacy/vars'
-    import { computed, ref, watchEffect } from 'vue'
+        MemberSkillOptions,
+        MemberStatusOptions
+    } from '@/types/house-of-legacy/member'
+    import { MoneyType, getMoney, updateMoney } from '@/types/house-of-legacy/money'
+    import { computed, ref } from 'vue'
+    import { useToast } from 'primevue/usetoast'
     const fileupload = ref()
-    const { data } = useGameStore()
-    const messageVisible = ref(false)
-    const messageInfo = ref('')
+    const { game } = useGameStore()
+    const toast = useToast()
     const editingRows = ref([])
     const selected = ref(false)
 
@@ -21,42 +26,43 @@
     }
 
     const showMessage = (msg: string) => {
-        messageVisible.value = true
-        messageInfo.value = msg
-        setTimeout(() => {
-            messageVisible.value = false
-            messageInfo.value = ''
-        }, 3500)
+        toast.add({ severity: 'info', summary: 'Info', detail: msg, life: 3000 })
     }
 
     const showData = computed(() => {
-        if (!data || !data.value) return []
-        let familys = getMembers(Type.Family)
-        let spouses = getMembers(Type.Spouse)
-        let guests = getMembers(Type.Guest)
+        let familys = getMembers(MemberType.Family)
+        let spouses = getMembers(MemberType.Spouse)
+        let guests = getMembers(MemberType.Guest)
+        let money = getMoney(MoneyType.Money)
+        let yuanbao = getMoney(MoneyType.YuanBao)
         return {
             familys,
             spouses,
-            guests
+            guests,
+            money,
+            yuanbao
         }
     })
 
-    const getShowData = (type: Type): Member[] => {
-        if (type == Type.Family) {
+    const getShowData = (type: MemberType): Member[] => {
+        if (type == MemberType.Family) {
             return showData.value.familys
-        } else if (type == Type.Spouse) {
+        } else if (type == MemberType.Spouse) {
             return showData.value.spouses
-        } else if (type == Type.Guest) {
+        } else if (type == MemberType.Guest) {
             return showData.value.guests
         }
         return []
     }
 
+    const UpdateMoney = () => {
+        updateMoney(MoneyType.Money, showData.value.money)
+        updateMoney(MoneyType.YuanBao, showData.value.yuanbao)
+        showMessage('修改成功')
+    }
+
     const upAll = (member: Member) => {
-        if (!data || !data.value) {
-            console.error('jsonData is null')
-            return
-        }
+        member.reputation = '100'
         member.health = '100'
         member.mood = '100'
         member.charm = '100'
@@ -66,12 +72,18 @@
         member.shang = '100'
         member.yi = '100'
         member.mou = '100'
+        if (member.talent != '0') {
+            member.talentValue = '100'
+        }
+        if (member.skill != '0') {
+            member.skillValue = '100'
+        }
 
         updateMember(member)
     }
 
     const upAge18 = (member: Member) => {
-        if (!data || !data.value) {
+        if (!game.parsed) {
             console.error('jsonData is null')
             return
         }
@@ -79,39 +91,39 @@
         updateMember(member)
     }
 
-    const upMembersAll = (type: Type) => {
-        if (!data || !data.value) {
+    const upMembersAll = (type: MemberType) => {
+        if (!game.parsed) {
             console.error('jsonData is null')
             return
         }
-        if (type == Type.Family) {
+        if (type == MemberType.Family) {
             showData.value.familys.forEach(member => {
                 upAll(member)
             })
-        } else if (type == Type.Spouse) {
+        } else if (type == MemberType.Spouse) {
             showData.value.spouses.forEach(member => {
                 upAll(member)
             })
-        } else if (type == Type.Guest) {
+        } else if (type == MemberType.Guest) {
             showData.value.guests.forEach(member => {
                 upAll(member)
             })
         }
     }
-    const upMembersAge18 = (type: Type) => {
-        if (!data || !data.value) {
+    const upMembersAge18 = (type: MemberType) => {
+        if (!game.parsed) {
             console.error('jsonData is null')
             return
         }
-        if (type == Type.Family) {
+        if (type == MemberType.Family) {
             showData.value.familys.forEach(member => {
                 upAge18(member)
             })
-        } else if (type == Type.Spouse) {
+        } else if (type == MemberType.Spouse) {
             showData.value.spouses.forEach(member => {
                 upAge18(member)
             })
-        } else if (type == Type.Guest) {
+        } else if (type == MemberType.Guest) {
             showData.value.guests.forEach(member => {
                 upAge18(member)
             })
@@ -132,9 +144,8 @@
                 reader.onerror = reject
                 reader.readAsText(file)
             })
-
-            data.value = JSON.parse(text as string)
-            console.log('解析结果:', data.value)
+            game.parse(text as string)
+            console.log('解析结果:', game)
             selected.value = true
         } catch (error) {
             console.error('解析失败:', error)
@@ -143,12 +154,12 @@
     }
 
     const save = async () => {
-        if (!data || !data.value) {
+        if (!game.parsed) {
             showMessage('没有可保存的数据')
             return
         }
         try {
-            const jsonString = JSON.stringify(data.value, null, 0)
+            const jsonString = JSON.stringify(game.data, null, 0)
             const blob = new Blob([jsonString], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
 
@@ -171,214 +182,343 @@
 </script>
 
 <template>
-    <h1>house-of-legacy</h1>
-    <div style="display: flex; justify-content: center; gap: 1rem">
-        <FileUpload
-            ref="fileupload"
-            mode="basic"
-            name="savefile"
-            accept=".es3"
-            chooseLabel="选择存档文件"
-            @select="parse"
-            :previewWidth="0"
-        >
-            <template #empty>
-                <span>拖入存档文件</span>
+    <div style="padding: 10px">
+        <h1>house-of-legacy</h1>
+        <div style="display: flex; justify-content: center; gap: 1rem">
+            <FileUpload
+                ref="fileupload"
+                mode="basic"
+                name="savefile"
+                accept=".es3"
+                chooseLabel="选择存档文件"
+                @select="parse"
+                :previewWidth="0"
+            >
+                <template #empty>
+                    <span>拖入存档文件</span>
+                </template>
+            </FileUpload>
+            <ButtonGroup>
+                <Button
+                    label="保存"
+                    @click="save"
+                />
+            </ButtonGroup>
+        </div>
+
+        <div v-if="selected">
+            <Card style="width: 25rem; overflow: hidden">
+                <template #title>货币</template>
+                <template #content>
+                    <div style="display: grid; grid-column: 1; gap: 4px">
+                        <InputGroup>
+                            <InputGroupAddon> 金币 </InputGroupAddon>
+                            <InputText v-model="showData.money" />
+                        </InputGroup>
+                        <InputGroup>
+                            <InputGroupAddon> 元宝 </InputGroupAddon>
+                            <InputText v-model="showData.yuanbao" />
+                        </InputGroup>
+                        <Button @click.stop="UpdateMoney"> 修改 </Button>
+                    </div>
+                </template>
+            </Card>
+            <template v-for="type in MemberType">
+                <Panel toggleable>
+                    <template #header>
+                        <h3>{{ MemberTypeName[type] }}</h3>
+                    </template>
+                    <template #icons>
+                        <ButtonGroup>
+                            <Button
+                                label="升满属性"
+                                @click.stop="upMembersAll(type)"
+                                size="small"
+                                raised
+                                text
+                            />
+                            <Button
+                                label="18"
+                                @click.stop="upMembersAge18(type)"
+                                size="small"
+                                raised
+                                text
+                                v-if="type === MemberType.Guest"
+                            />
+                        </ButtonGroup>
+                    </template>
+                    <DataTable
+                        :value="getShowData(type)"
+                        v-model:editingRows="editingRows"
+                        editMode="row"
+                        @row-edit-save="onRowEditSave"
+                        size="small"
+                        stripedRows
+                        tableStyle="min-width: 50rem"
+                    >
+                        <Column
+                            field="name"
+                            header="名字"
+                        >
+                            <template #body="{ data }">
+                                <span v-if="type === MemberType.Family"
+                                    >{{ data.generation }}|</span
+                                >
+                                <span>{{ data.name }}</span>
+                            </template>
+                        </Column>
+                        <Column
+                            field="gender"
+                            header="性别"
+                        >
+                            <template #body="{ data }">
+                                {{ data.gender === '1' ? '男' : '女' }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.gender"
+                                    :options="[
+                                        { label: '男', value: '1' },
+                                        { label: '女', value: '0' }
+                                    ]"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="rank"
+                            header="爵位"
+                            v-if="type === MemberType.Family"
+                        >
+                            <template #body="{ data }">
+                                {{
+                                    MemberRankOptions.find(opt => opt.value === data.rank)?.label ||
+                                    ''
+                                }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.rank"
+                                    :options="MemberRankOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    filter
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="reputation"
+                            header="声誉"
+                        >
+                            <template #editor="{ data, field }">
+                                <InputNumber
+                                    v-model="data[field]"
+                                    :min="0"
+                                    :max="100"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="stamina"
+                            header="体力"
+                        />
+                        <Column
+                            field="age"
+                            header="年龄"
+                        />
+                        <!--人物4维-->
+                        <template
+                            v-for="(field, header) in {
+                                健康: 'health',
+                                心情: 'mood',
+                                魅力: 'charm',
+                                幸运: 'lucky'
+                            }"
+                            :key="field"
+                        >
+                            <Column
+                                :field="field"
+                                :header="header"
+                            >
+                                <template #editor="{ data, field }">
+                                    <InputNumber
+                                        v-model="data[field]"
+                                        :min="0"
+                                        :max="100"
+                                        size="small"
+                                        fluid
+                                    />
+                                </template>
+                            </Column>
+                        </template>
+                        <Column
+                            field="talent"
+                            header="天赋"
+                        >
+                            <template #body="{ data }">
+                                {{
+                                    MemberTalentOptions.find(opt => opt.value === data.talent)
+                                        ?.label || ''
+                                }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.talent"
+                                    :options="MemberTalentOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="talentValue"
+                            header="天赋数值"
+                        >
+                            <template #editor="{ data }">
+                                <InputNumber
+                                    v-model="data.talentValue"
+                                    :min="0"
+                                    :max="100"
+                                    size="small"
+                                    fluid
+                                    :disabled="data.talent === '0'"
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="skill"
+                            header="技能"
+                        >
+                            <template #body="{ data }">
+                                {{
+                                    MemberSkillOptions.find(opt => opt.value === data.skill)
+                                        ?.label || ''
+                                }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.skill"
+                                    :options="MemberSkillOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="skillValue"
+                            header="技能数值"
+                        >
+                            <template #editor="{ data }">
+                                <InputNumber
+                                    v-model="data.skillValue"
+                                    :min="0"
+                                    :max="100"
+                                    size="small"
+                                    fluid
+                                    :disabled="data.skill === '0'"
+                                />
+                            </template>
+                        </Column>
+                        <!--5维-->
+                        <template
+                            v-for="(field, header) in {
+                                文: 'wen',
+                                武: 'wu',
+                                商: 'shang',
+                                艺: 'yi',
+                                谋: 'mou'
+                            }"
+                            :key="field"
+                        >
+                            <Column
+                                :field="field"
+                                :header="header"
+                            >
+                                <template #editor="{ data, field }">
+                                    <InputNumber
+                                        v-model="data[field]"
+                                        :min="0"
+                                        :max="100"
+                                        size="small"
+                                        fluid
+                                    />
+                                </template>
+                            </Column>
+                        </template>
+                        <Column
+                            field="payment"
+                            header="薪酬"
+                            v-if="type === MemberType.Guest"
+                        >
+                            <template #editor="{ data, field }">
+                                <InputNumber
+                                    v-model="data[field]"
+                                    :min="0"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
+                            field="status"
+                            header="状态"
+                            v-if="type === MemberType.Family"
+                        >
+                            <template #body="{ data }">
+                                {{
+                                    MemberStatusOptions.find(opt => opt.value === data.status)
+                                        ?.label || ''
+                                }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.status"
+                                    :options="MemberStatusOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column :rowEditor="true" />
+                        <Column>
+                            <template #body="{ data }">
+                                <ButtonGroup>
+                                    <Button
+                                        label="升满属性"
+                                        @click.stop="upAll(data)"
+                                        size="small"
+                                        raised
+                                        text
+                                    />
+                                    <Button
+                                        label="18岁"
+                                        @click.stop="upAge18(data)"
+                                        size="small"
+                                        raised
+                                        text
+                                        v-if="type === MemberType.Guest"
+                                    />
+                                </ButtonGroup>
+                            </template>
+                        </Column>
+                    </DataTable>
+                </Panel>
             </template>
-        </FileUpload>
-        <ButtonGroup>
-            <Button
-                label="保存"
-                @click="save"
-            />
-        </ButtonGroup>
+        </div>
     </div>
-    <div v-if="selected">
-        <template v-for="type in Type">
-            <Panel toggleable>
-                <template #header>
-                    <h3>{{ TypeName[type] }}</h3>
-                </template>
-                <template #icons>
-                    <ButtonGroup>
-                        <Button
-                            label="升满属性"
-                            @click.stop="upMembersAll(type)"
-                            size="small"
-                            severity="success"
-                            raised
-                            text
-                        />
-                        <Button
-                            label="18"
-                            @click.stop="upMembersAge18(type)"
-                            size="small"
-                            severity="success"
-                            raised
-                            text
-                        />
-                    </ButtonGroup>
-                </template>
-                <DataTable
-                    :value="getMembers(type)"
-                    tableStyle="min-width: 50rem"
-                    v-model:editingRows="editingRows"
-                    editMode="row"
-                    @row-edit-save="onRowEditSave"
-                    size="small"
-                >
-                    <Column
-                        field="name"
-                        header="名字"
-                    />
-                    <Column
-                        header="性别"
-                    >
-                        <template #body="slotProps">
-                            {{ slotProps.data.gender === '1'? '男':'女' }}
-                        </template>
-                    </Column>
-                    <Column
-                        field="generation"
-                        header="第几代"
-                        v-if="type === Type.Family"
-                    />
-                    <Column
-                        field="rank"
-                        header="爵位"
-                        v-if="type === Type.Family"
-                    />
-                    <Column
-                        field="reputation"
-                        header="声誉"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="stamina"
-                        header="体力"
-                    />
-                    <Column
-                        field="age"
-                        header="年龄"
-                    />
-                    <Column
-                        field="health"
-                        header="健康"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="mood"
-                        header="心情"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="charm"
-                        header="魅力"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="lucky"
-                        header="幸运"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column header="天赋">
-                        <template #body="slotProps">
-                            {{ MemberTalentOptions[slotProps.data.talent].label }}
-                        </template>
-                    </Column>
-                    <Column
-                        field="talentValue"
-                        header="天赋数值"
-                    />
-                    <Column header="技能">
-                        <template #body="slotProps">
-                            {{ MemberSkillOptions[slotProps.data.skill].label }}
-                        </template>
-                    </Column>
-                    <Column
-                        field="skillValue"
-                        header="技能数值"
-                    />
-                    <Column
-                        field="wen"
-                        header="文"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="wu"
-                        header="武"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="shang"
-                        header="商"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="yi"
-                        header="艺"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column
-                        field="mou"
-                        header="谋"
-                    >
-                        <template #editor="{ data, field }">
-                            <InputText v-model="data[field]" />
-                        </template>
-                    </Column>
-                    <Column :rowEditor="true" />
-                    <Column>
-                        <template #body="{ data }">
-                            <ButtonGroup>
-                                <Button
-                                    label="升满属性"
-                                    @click.stop="upAll(data)"
-                                />
-                                <Button
-                                    label="18岁"
-                                    @click.stop="upAge18(data)"
-                                />
-                            </ButtonGroup>
-                        </template>
-                    </Column>
-                </DataTable>
-            </Panel>
-        </template>
-    </div>
-    <Message
-        v-if="messageVisible"
-        severity="success"
-        :life="3000"
-        >{{ messageInfo }}</Message
-    >
 </template>
 
 <style scoped></style>
