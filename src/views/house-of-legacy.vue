@@ -11,8 +11,14 @@
         MemberSkillOptions,
         MemberStatusOptions
     } from '@/types/house-of-legacy/member'
-    import { MoneyType, getMoney, updateMoney } from '@/types/house-of-legacy/money'
-    import { computed, ref } from 'vue'
+    import {
+        CurrencyType,
+        CurrencyTypeName,
+        getCurrency,
+        updateCurrency
+    } from '@/types/house-of-legacy/currency'
+    import { getItems, ItemType, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
+    import { reactive, ref } from 'vue'
     import { useToast } from 'primevue/usetoast'
     const fileupload = ref()
     const { game } = useGameStore()
@@ -29,35 +35,38 @@
         toast.add({ severity: 'info', summary: 'Info', detail: msg, life: 3000 })
     }
 
-    const showData = computed(() => {
-        let familys = getMembers(MemberType.Family)
-        let spouses = getMembers(MemberType.Spouse)
-        let guests = getMembers(MemberType.Guest)
-        let money = getMoney(MoneyType.Money)
-        let yuanbao = getMoney(MoneyType.YuanBao)
-        return {
-            familys,
-            spouses,
-            guests,
-            money,
-            yuanbao
+    const showData = reactive<{
+        familys: Member[]
+        spouses: Member[]
+        guests: Member[]
+        items: { [key: ItemType]: number }
+        currency: {
+            [CurrencyType.Money]: number
+            [CurrencyType.YuanBao]: number
         }
+    }>({
+        familys: [],
+        spouses: [],
+        guests: [],
+        items: {},
+        currency: {}
     })
 
     const getShowData = (type: MemberType): Member[] => {
         if (type == MemberType.Family) {
-            return showData.value.familys
+            return showData.familys
         } else if (type == MemberType.Spouse) {
-            return showData.value.spouses
+            return showData.spouses
         } else if (type == MemberType.Guest) {
-            return showData.value.guests
+            return showData.guests
         }
         return []
     }
 
-    const UpdateMoney = () => {
-        updateMoney(MoneyType.Money, showData.value.money)
-        updateMoney(MoneyType.YuanBao, showData.value.yuanbao)
+    const UpdateCurrency = () => {
+        for (const key in showData.currency) {
+            updateCurrency(key, showData.currency[key])
+        }
         showMessage('修改成功')
     }
 
@@ -78,8 +87,6 @@
         if (member.skill != '0') {
             member.skillValue = '100'
         }
-
-        updateMember(member)
     }
 
     const upAge18 = (member: Member) => {
@@ -88,7 +95,6 @@
             return
         }
         member.age = '18'
-        updateMember(member)
     }
 
     const upMembersAll = (type: MemberType) => {
@@ -97,15 +103,15 @@
             return
         }
         if (type == MemberType.Family) {
-            showData.value.familys.forEach(member => {
+            showData.familys.forEach(member => {
                 upAll(member)
             })
         } else if (type == MemberType.Spouse) {
-            showData.value.spouses.forEach(member => {
+            showData.spouses.forEach(member => {
                 upAll(member)
             })
         } else if (type == MemberType.Guest) {
-            showData.value.guests.forEach(member => {
+            showData.guests.forEach(member => {
                 upAll(member)
             })
         }
@@ -116,15 +122,15 @@
             return
         }
         if (type == MemberType.Family) {
-            showData.value.familys.forEach(member => {
+            showData.familys.forEach(member => {
                 upAge18(member)
             })
         } else if (type == MemberType.Spouse) {
-            showData.value.spouses.forEach(member => {
+            showData.spouses.forEach(member => {
                 upAge18(member)
             })
         } else if (type == MemberType.Guest) {
-            showData.value.guests.forEach(member => {
+            showData.guests.forEach(member => {
                 upAge18(member)
             })
         }
@@ -135,15 +141,15 @@
             return
         }
         if (type === MemberType.Guest) {
-            showData.value.guests.forEach(member => {
+            showData.guests.forEach(member => {
                 member.payment = '0'
-                updateMember(member)
             })
         }
     }
 
     const parse = async () => {
         console.log('parse')
+        selected.value = false
         try {
             console.log(fileupload.value)
             const files = fileupload.value.files
@@ -159,17 +165,46 @@
             game.parse(text as string)
             console.log('解析结果:', game)
             selected.value = true
+
+            showData.familys = getMembers(MemberType.Family)
+            showData.spouses = getMembers(MemberType.Spouse)
+            showData.guests = getMembers(MemberType.Guest)
+            showData.items = getItems()
+            showData.currency = {
+                [CurrencyType.Money]: getCurrency(CurrencyType.Money),
+                [CurrencyType.YuanBao]: getCurrency(CurrencyType.YuanBao)
+            }
         } catch (error) {
             console.error('解析失败:', error)
             showMessage('文件格式错误，请确认是有效的JSON文件')
         }
     }
 
-    const save = async () => {
+    const updateData = () => {
+        showData.familys.forEach(member => {
+            updateMember(member)
+        })
+        showData.spouses.forEach(member => {
+            updateMember(member)
+        })
+        showData.guests.forEach(member => {
+            updateMember(member)
+        })
+        for (const key in showData.currency) {
+            const value = showData.currency[key]
+            updateCurrency(key as CurrencyType, value)
+        }
+        for (const key in showData.items) {
+            const value = showData.items[key]
+            setItem(key as CurrencyType, value)
+        }
+    }
+    const saveFile = async () => {
         if (!game.parsed) {
             showMessage('没有可保存的数据')
             return
         }
+        updateData()
         try {
             const jsonString = JSON.stringify(game.data, null, 0)
             const blob = new Blob([jsonString], { type: 'application/json' })
@@ -213,28 +248,50 @@
             <ButtonGroup>
                 <Button
                     label="保存"
-                    @click="save"
+                    @click="saveFile"
                 />
             </ButtonGroup>
         </div>
-
         <div v-if="selected">
-            <Card style="width: 25rem; overflow: hidden">
-                <template #title>货币</template>
-                <template #content>
+            <div class="editpannel">
+                <Panel header="货币">
                     <div style="display: grid; grid-column: 1; gap: 4px">
-                        <InputGroup>
-                            <InputGroupAddon> 金币 </InputGroupAddon>
-                            <InputText v-model="showData.money" />
-                        </InputGroup>
-                        <InputGroup>
-                            <InputGroupAddon> 元宝 </InputGroupAddon>
-                            <InputText v-model="showData.yuanbao" />
-                        </InputGroup>
-                        <Button @click.stop="UpdateMoney"> 修改 </Button>
+                        <template v-for="(_, type) in showData.currency">
+                            <InputGroup>
+                                <InputGroupAddon>
+                                    {{ CurrencyTypeName[type] }}
+                                </InputGroupAddon>
+                                <InputNumber
+                                    :min="0"
+                                    v-model="showData.currency[type]"
+                                />
+                            </InputGroup>
+                        </template>
                     </div>
-                </template>
-            </Card>
+                </Panel>
+                <Panel header="物品">
+                    <ScrollPanel style="min-height: 100px">
+                        <div
+                            style="
+                                display: grid;
+                                grid-template-columns: repeat(3, 1fr);
+                                gap: 6px;
+                                padding: 5px;
+                            "
+                        >
+                            <template v-for="type in ItemType">
+                                <InputGroup>
+                                    <InputGroupAddon> {{ ItemTypeName[type] }} </InputGroupAddon>
+                                    <InputNumber
+                                        :min="0"
+                                        v-model="showData.items[type]"
+                                    />
+                                </InputGroup>
+                            </template>
+                        </div>
+                    </ScrollPanel>
+                </Panel>
+            </div>
             <template v-for="type in MemberType">
                 <Panel toggleable>
                     <template #header>
@@ -541,4 +598,12 @@
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+    .editpannel {
+        display: flex;
+        justify-content: space-around;
+        gap: 1rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+</style>

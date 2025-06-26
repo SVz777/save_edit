@@ -21,7 +21,7 @@ class Game {
     }
 
     set(value: any, ...path: any[]) {
-        _.set(this.data, path, value);
+        _.set(this.data, path, String(value));
     }
 }
 
