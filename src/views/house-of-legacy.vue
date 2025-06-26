@@ -9,7 +9,8 @@
         MemberRankOptions,
         MemberTalentOptions,
         MemberSkillOptions,
-        MemberStatusOptions
+        MemberStatusOptions,
+        MemberNatureOptions
     } from '@/types/house-of-legacy/member'
     import {
         CurrencyType,
@@ -28,7 +29,18 @@
 
     const onRowEditSave = (event: any) => {
         let { newData } = event
-        updateMember(newData)
+        const type = newData.type
+        if (type == MemberType.Family) {
+            const idx = showData.familys.findIndex((m: any) => m.id === newData.id)
+            showData.familys[idx] = newData
+        } else if (type == MemberType.Spouse) {
+            const idx = showData.spouses.findIndex((m: any) => m.id === newData.id)
+            showData.spouses[idx] = newData
+        } else if (type == MemberType.Guest) {
+            const idx = showData.guests.findIndex((m: any) => m.id === newData.id)
+            showData.guests[idx] = newData
+        }
+        console.log(showData)
     }
 
     const showMessage = (msg: string) => {
@@ -70,7 +82,14 @@
         showMessage('修改成功')
     }
 
-    const upAll = (member: Member) => {
+    const upAllItems = () => {
+        console.log(showData.items)
+        for (const key in ItemType) {
+            showData.items[ItemType[key as keyof typeof ItemType]] = 1000000
+        }
+    }
+
+    const upAllAttr = (member: Member) => {
         member.reputation = '100'
         member.health = '100'
         member.mood = '100'
@@ -85,7 +104,7 @@
             member.talentValue = '100'
         }
         if (member.skill != '0') {
-            member.skillValue = '100'
+            member.skillValue = '10'
         }
     }
 
@@ -104,15 +123,15 @@
         }
         if (type == MemberType.Family) {
             showData.familys.forEach(member => {
-                upAll(member)
+                upAllAttr(member)
             })
         } else if (type == MemberType.Spouse) {
             showData.spouses.forEach(member => {
-                upAll(member)
+                upAllAttr(member)
             })
         } else if (type == MemberType.Guest) {
             showData.guests.forEach(member => {
-                upAll(member)
+                upAllAttr(member)
             })
         }
     }
@@ -270,6 +289,16 @@
                     </div>
                 </Panel>
                 <Panel header="物品">
+                    <template #icons>
+                        <Button
+                            label="全部100w"
+                            @click.stop="upAllItems()"
+                            size="small"
+                            raised
+                            text
+                        >
+                        </Button>
+                    </template>
                     <ScrollPanel style="min-height: 100px">
                         <div
                             style="
@@ -436,6 +465,27 @@
                             </Column>
                         </template>
                         <Column
+                            field="nature"
+                            header="性格"
+                        >
+                            <template #body="{ data }">
+                                {{
+                                    MemberNatureOptions.find(opt => opt.value === data.nature)
+                                        ?.label || ''
+                                }}
+                            </template>
+                            <template #editor="{ data }">
+                                <Select
+                                    v-model="data.nature"
+                                    :options="MemberNatureOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
+                        <Column
                             field="talent"
                             header="天赋"
                         >
@@ -500,7 +550,7 @@
                                 <InputNumber
                                     v-model="data.skillValue"
                                     :min="0"
-                                    :max="100"
+                                    :max="10"
                                     size="small"
                                     fluid
                                     :disabled="data.skill === '0'"
@@ -575,7 +625,7 @@
                                 <ButtonGroup>
                                     <Button
                                         label="升满属性"
-                                        @click.stop="upAll(data)"
+                                        @click.stop="upAllAttr(data)"
                                         size="small"
                                         raised
                                         text

@@ -177,7 +177,7 @@ export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
         // 健康
         health: [16],
         // 心情
-        mood: [11],
+        mood: [10],
         // 魅力
         charm: [15],
         // 技能值
@@ -255,6 +255,7 @@ export interface Member {
     health: string
     mood: string
     charm: string
+    nature: string
     lucky?: string
     talent?: string
     talentValue?: string
@@ -292,6 +293,7 @@ export function getMembers(type: MemberType): Member[] {
             health: _.get(member, index.health),
             mood: _.get(member, index.mood),
             charm: _.get(member, index.charm),
+            nature: _.get(member, index.nature),
             skillValue: _.get(member, index.skillValue),
             wen: _.get(member, index.wen),
             wu: _.get(member, index.wu),
@@ -332,7 +334,6 @@ export function updateMember(member: Member) {
     if (!game) {
         return []
     }
-    console.log('update member', member)
     let members = game.get(member.type, 'value')
     if (!members) {
         return []
@@ -347,6 +348,6 @@ export function updateMember(member: Member) {
         // 为了解决类型错误，我们需要确保 key 是 Member 接口的有效属性名。
         // 可以通过将 key 的类型限制为 keyof Member 来实现。
         const typedKey = key as keyof Member
-        _.set(originMember, path, member[typedKey])
+        _.set(originMember, path, String(member[typedKey]))
     }
 }
