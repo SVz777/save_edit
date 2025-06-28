@@ -129,24 +129,10 @@ export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
         id: [0],
         // info,
         info: [4],
-        // 爵位
-        rank: [14],
-        // 声誉
-        reputation: [16],
-        // 体力
-        stamina: [30],
-        // 年龄
-        age: [6],
-        // 健康
-        health: [21],
-        // 心情
-        mood: [11],
-        // 魅力
-        charm: [20],
         // 性格
         nature: [5],
-        // 技能值
-        skillValue: [33],
+        // 年龄
+        age: [6],
         // 文
         wen: [7],
         // 武
@@ -155,33 +141,34 @@ export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
         shang: [9],
         // 艺
         yi: [10],
-        // 谋
-        mou: [27],
-
+        // 心情
+        mood: [11],
+        // 爵位
+        rank: [14],
+        // 人物状态
+        status: [15],
+        // 声誉
+        reputation: [16],
+        // 魅力
+        charm: [20],
+        // 健康
+        health: [21],
         // 怀孕
         pregnancy: [25],
-        // 人物状态
-        status: [15]
+        // 谋
+        mou: [27],
+        // 体力
+        stamina: [30],
+        // 技能值
+        skillValue: [33]
     },
     [MemberType.Spouse]: {
         // id
         id: [0],
         // info
         info: [2],
-        // 声誉
-        reputation: [12],
-        // 体力
-        stamina: [20],
         // 年龄
         age: [5],
-        // 健康
-        health: [16],
-        // 心情
-        mood: [10],
-        // 魅力
-        charm: [15],
-        // 技能值
-        skillValue: [23],
         // 文
         wen: [6],
         // 武
@@ -190,30 +177,30 @@ export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
         shang: [8],
         // 艺
         yi: [9],
+        // 心情
+        mood: [10],
+        // 声誉
+        reputation: [12],
+        // 魅力
+        charm: [15],
+        // 健康
+        health: [16],
+        // 怀孕
+        pregnancy: [18],
         // 谋
         mou: [19],
-        // 怀孕
-        pregnancy: [18]
+        // 体力
+        stamina: [20],
+        // 技能值
+        skillValue: [23]
     },
     [MemberType.Guest]: {
         // id
         id: [0],
         // info
         info: [2],
-        // 声誉
-        reputation: [11],
-        // 体力
-        stamina: [19],
         // 年龄
         age: [3],
-        // 健康
-        health: [14],
-        // 心情
-        mood: [8],
-        // 魅力
-        charm: [13],
-        // 技能值
-        skillValue: [16],
         // 文
         wen: [4],
         // 武
@@ -222,23 +209,67 @@ export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
         shang: [6],
         // 艺
         yi: [7],
+        // 心情
+        mood: [8],
+        // 人物状态
+        status: [10],
+        // 声誉
+        reputation: [11],
+        // 魅力
+        charm: [13],
+        // 健康
+        health: [14],
         // 谋
         mou: [15],
+        // 技能值
+        skillValue: [16],
+        // 怀孕
+        pregnancy: [17],
         // 薪水
-        payment: [18]
+        payment: [18],
+        // 体力
+        stamina: [19]
     }
 }
 
-const InfoIndex: Record<string, number> = {
-    name: 0,
-    generation: 1,
-    talent: 2,
-    talentValue: 3,
-    gender: 4,
-    life: 5,
-    skill: 6,
-    lucky: 7,
-    like: 9
+const InfoIndex: Record<MemberType, Record<string, number>> = {
+    [MemberType.Family]: {
+        name: 0,
+        generation: 1,
+        talent: 2,
+        talentValue: 3,
+        gender: 4,
+        life: 5,
+        skill: 6,
+        lucky: 7,
+        like: 9
+    },
+    [MemberType.Spouse]: {
+        name: 0,
+        generation: 1,
+        talent: 2,
+        talentValue: 3,
+        gender: 4,
+        life: 5,
+        skill: 6,
+        lucky: 7,
+        nature: 8,
+        spouse: 9,
+        like: 10,
+        pregnantChildrenParent: 11
+    },
+    [MemberType.Guest]: {
+        name: 0,
+        generation: 1,
+        talent: 2,
+        talentValue: 3,
+        gender: 4,
+        life: 5,
+        skill: 6,
+        lucky: 7,
+        nature: 8,
+        pregnantChildrenParent: 9
+    }
 }
 
 export interface Member {
@@ -269,6 +300,8 @@ export interface Member {
     pregnancy?: string
     status?: string
     payment?: string
+    //
+    pregnantChildrenParent?: string
 }
 
 export function getMembers(type: MemberType): Member[] {
@@ -303,30 +336,34 @@ export function getMembers(type: MemberType): Member[] {
             payment: _.get(member, index.payment),
             pregnancy: _.get(member, index.pregnancy),
             status: _.get(member, index.status),
-            ...getInfo(_.get(member, index.info)!)
+            ...getInfo(type, _.get(member, index.info)!)
         }
         return info
     })
     return ret
 }
 
-function getInfo(infoS: string): {} {
+function getInfo(type: MemberType, infoS: string): {} {
+    const index = InfoIndex[type]
     const info = infoS.split('|')
     const ret: { [key: string]: any } = {}
-    for (let key in InfoIndex) {
-        let idx = InfoIndex[key]
+    for (let key in index) {
+        let idx = index[key]
         ret[key] = info[idx]
     }
     return ret
 }
 
 function updateInfo(member: Member) {
+    const index = InfoIndex[member.type]
     const infoS: string[] = member.info.split('|')
-    for (let key in InfoIndex) {
-        let idx = InfoIndex[key]
+    for (let key in index) {
+        let idx = index[key]
         infoS[idx] = member[key as keyof Member] ?? ''
     }
+
     member.info = infoS.join('|')
+    console.log('update info: ', member.info)
 }
 
 export function updateMember(member: Member) {

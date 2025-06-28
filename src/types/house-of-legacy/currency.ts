@@ -37,5 +37,5 @@ export function updateCurrency(type: CurrencyType, value: number) {
     if(type === CurrencyType.YuanBao && value > 100000000) {
         value = 100000000 // 最大值为 100000000
     }
-    return game.set(value, currencyKey, 'value', index)
+    return game.set(String(value), currencyKey, 'value', index)
 }

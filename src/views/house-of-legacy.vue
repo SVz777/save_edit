@@ -19,13 +19,18 @@
         updateCurrency
     } from '@/types/house-of-legacy/currency'
     import { getItems, ItemType, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
-    import { reactive, ref } from 'vue'
+    import { computed, reactive, ref } from 'vue'
     import { useToast } from 'primevue/usetoast'
+    import { getNuLi, updateNuli } from '@/types/house-of-legacy/nuli'
     const fileupload = ref()
     const { game } = useGameStore()
     const toast = useToast()
     const editingRows = ref([])
     const selected = ref(false)
+
+    const pregnantVisible = ref(false)
+    const pregnantMember = ref<Member>()
+    const pregnantChildrenParent = ref<string>('')
 
     const onRowEditSave = (event: any) => {
         let { newData } = event
@@ -56,12 +61,21 @@
             [CurrencyType.Money]: number
             [CurrencyType.YuanBao]: number
         }
+        NuLi: number
     }>({
         familys: [],
         spouses: [],
         guests: [],
         items: {},
-        currency: {}
+        currency: {},
+        NuLi: 0
+    })
+
+    const familyMembersOptions = computed(() => {
+        return showData.familys.map(m => ({
+            label: m.name,
+            value: m.id.toString() // 根据组件需求转换类型
+        }))
     })
 
     const getShowData = (type: MemberType): Member[] => {
@@ -73,13 +87,6 @@
             return showData.guests
         }
         return []
-    }
-
-    const UpdateCurrency = () => {
-        for (const key in showData.currency) {
-            updateCurrency(key, showData.currency[key])
-        }
-        showMessage('修改成功')
     }
 
     const upAllItems = () => {
@@ -165,6 +172,17 @@
             })
         }
     }
+    const pregnant = () => {
+        if (!pregnantMember.value || !pregnantChildrenParent.value) {
+            console.error('pregnant select error')
+            pregnantVisible.value = false
+            return
+        }
+        pregnantMember.value.pregnancy = '1'
+        pregnantMember.value.pregnantChildrenParent = pregnantChildrenParent.value
+        pregnantVisible.value = false
+        console.log('pregnant: ', pregnantMember.value, pregnantChildrenParent.value)
+    }
 
     const parse = async () => {
         console.log('parse')
@@ -185,6 +203,7 @@
             console.log('解析结果:', game)
             selected.value = true
 
+            //  填充展示
             showData.familys = getMembers(MemberType.Family)
             showData.spouses = getMembers(MemberType.Spouse)
             showData.guests = getMembers(MemberType.Guest)
@@ -193,6 +212,7 @@
                 [CurrencyType.Money]: getCurrency(CurrencyType.Money),
                 [CurrencyType.YuanBao]: getCurrency(CurrencyType.YuanBao)
             }
+            showData.NuLi = getNuLi()
         } catch (error) {
             console.error('解析失败:', error)
             showMessage('文件格式错误，请确认是有效的JSON文件')
@@ -217,6 +237,7 @@
             const value = showData.items[key]
             setItem(key as CurrencyType, value)
         }
+        updateNuli(showData.NuLi)
     }
     const saveFile = async () => {
         if (!game.parsed) {
@@ -273,7 +294,7 @@
         </div>
         <div v-if="selected">
             <div class="editpannel">
-                <Panel header="货币">
+                <Panel header="资源">
                     <div style="display: grid; grid-column: 1; gap: 4px">
                         <template v-for="(_, type) in showData.currency">
                             <InputGroup>
@@ -286,6 +307,13 @@
                                 />
                             </InputGroup>
                         </template>
+                        <InputGroup>
+                            <InputGroupAddon> 奴隶 </InputGroupAddon>
+                            <InputNumber
+                                :min="0"
+                                v-model="showData.NuLi"
+                            />
+                        </InputGroup>
                     </div>
                 </Panel>
                 <Panel header="物品">
@@ -378,7 +406,15 @@
                             header="性别"
                         >
                             <template #body="{ data }">
-                                {{ data.gender === '1' ? '男' : '女' }}
+                                <OverlayBadge
+                                    v-if="data.pregnancy != '-1'"
+                                    :value="data.pregnancy"
+                                    severity="warn"
+                                    size="small"
+                                >
+                                    <span>{{ data.gender === '1' ? '男' : '女' }}</span>
+                                </OverlayBadge>
+                                <span v-else>{{ data.gender === '1' ? '男' : '女' }}</span>
                             </template>
                             <template #editor="{ data }">
                                 <Select
@@ -438,7 +474,18 @@
                         <Column
                             field="age"
                             header="年龄"
-                        />
+                        >
+                            <template #body="{ data }"> {{ data.age }} / {{ data.life }} </template>
+                            <template #editor="{ data }">
+                                {{ data.age }}/
+                                <InputNumber
+                                    v-model="data.life"
+                                    :min="data.age"
+                                    size="small"
+                                    fluid
+                                />
+                            </template>
+                        </Column>
                         <!--人物4维-->
                         <template
                             v-for="(field, header) in {
@@ -638,6 +685,18 @@
                                         text
                                         v-if="type === MemberType.Guest"
                                     />
+                                    <Button
+                                        label="立即怀孕"
+                                        @click.stop="
+                                            () => {
+                                                pregnantVisible = true
+                                                pregnantMember = data
+                                            }
+                                        "
+                                        size="small"
+                                        raised
+                                        text
+                                    />
                                 </ButtonGroup>
                             </template>
                         </Column>
@@ -646,6 +705,30 @@
             </template>
         </div>
     </div>
+
+    <Dialog
+        v-model:visible="pregnantVisible"
+        modal
+        header="Edit Profile"
+        :style="{ width: '25rem' }"
+    >
+        <Select
+            v-model="pregnantChildrenParent"
+            :options="familyMembersOptions"
+            optionLabel="label"
+            optionValue="value"
+            size="small"
+            filter
+            fluid
+        />
+        <Button
+            label="确认"
+            @click.stop="pregnant"
+            size="small"
+            raised
+            text
+        />
+    </Dialog>
 </template>
 
 <style scoped>

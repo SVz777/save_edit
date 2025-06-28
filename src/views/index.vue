@@ -16,7 +16,7 @@
 </script>
 
 <template>
-    <h1 class="title">TODO title</h1>
+    <h1 class="title">存档修改器</h1>
     <div class="container">
         <template
             v-for="(card, index) in cards"
