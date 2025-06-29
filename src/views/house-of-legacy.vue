@@ -18,6 +18,12 @@
         getCurrency,
         updateCurrency
     } from '@/types/house-of-legacy/currency'
+    import {
+        FamilyType,
+        FamilyTypeName,
+        getFamily,
+        updateFamily
+    } from '@/types/house-of-legacy/family'
     import { getItems, ItemType, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
     import { computed, reactive, ref } from 'vue'
     import { useToast } from 'primevue/usetoast'
@@ -32,19 +38,21 @@
     const pregnantMember = ref<Member>()
     const pregnantChildrenParent = ref<string>('')
 
-    const onRowEditSave = (event: any) => {
-        let { newData } = event
-        const type = newData.type
-        if (type == MemberType.Family) {
-            const idx = showData.familys.findIndex((m: any) => m.id === newData.id)
-            showData.familys[idx] = newData
-        } else if (type == MemberType.Spouse) {
-            const idx = showData.spouses.findIndex((m: any) => m.id === newData.id)
-            showData.spouses[idx] = newData
-        } else if (type == MemberType.Guest) {
-            const idx = showData.guests.findIndex((m: any) => m.id === newData.id)
-            showData.guests[idx] = newData
-        }
+    const onEditSave = (event: any) => {
+        let { data, field, newValue } = event
+        data[field] = newValue
+        // console.log(event)
+        // const type = newData.type
+        // if (type == MemberType.Family) {
+        //     const idx = showData.members.familys.findIndex((m: any) => m.id === newData.id)
+        //     showData.members.familys[idx] = newData
+        // } else if (type == MemberType.Spouse) {
+        //     const idx = showData.members.spouses.findIndex((m: any) => m.id === newData.id)
+        //     showData.members.spouses[idx] = newData
+        // } else if (type == MemberType.Guest) {
+        //     const idx = showData.members.guests.findIndex((m: any) => m.id === newData.id)
+        //     showData.members.guests[idx] = newData
+        // }
         console.log(showData)
     }
 
@@ -52,27 +60,38 @@
         toast.add({ severity: 'info', summary: 'Info', detail: msg, life: 3000 })
     }
 
-    const showData = reactive<{
-        familys: Member[]
-        spouses: Member[]
-        guests: Member[]
+    interface IShowData {
+        members: {
+            familys: Member[]
+            spouses: Member[]
+            guests: Member[]
+        }
         items: { [key: ItemType]: number }
         currency: {
             [CurrencyType.Money]: number
             [CurrencyType.YuanBao]: number
         }
+        family: {
+            [FamilyType.SurName]: string
+            [FamilyType.Level]: number
+            [FamilyType.Exp]: number
+        }
         NuLi: number
-    }>({
-        familys: [],
-        spouses: [],
-        guests: [],
+    }
+    const showData = reactive<IShowData>({
+        members: {
+            familys: [],
+            spouses: [],
+            guests: []
+        },
         items: {},
         currency: {},
+        family: {},
         NuLi: 0
     })
 
     const familyMembersOptions = computed(() => {
-        return showData.familys.map(m => ({
+        return showData.members.familys.map(m => ({
             label: m.name,
             value: m.id.toString() // 根据组件需求转换类型
         }))
@@ -80,13 +99,30 @@
 
     const getShowData = (type: MemberType): Member[] => {
         if (type == MemberType.Family) {
-            return showData.familys
+            return showData.members.familys
         } else if (type == MemberType.Spouse) {
-            return showData.spouses
+            return showData.members.spouses
         } else if (type == MemberType.Guest) {
-            return showData.guests
+            return showData.members.guests
         }
         return []
+    }
+
+    const setShowData = () => {
+        showData.members.familys = getMembers(MemberType.Family)
+        showData.members.spouses = getMembers(MemberType.Spouse)
+        showData.members.guests = getMembers(MemberType.Guest)
+        showData.items = getItems()
+        showData.currency = {
+            [CurrencyType.Money]: getCurrency(CurrencyType.Money),
+            [CurrencyType.YuanBao]: getCurrency(CurrencyType.YuanBao)
+        }
+        showData.NuLi = getNuLi()
+        showData.family = {
+            [FamilyType.SurName]: getFamily(FamilyType.SurName),
+            [FamilyType.Level]: getFamily(FamilyType.Level),
+            [FamilyType.Exp]: getFamily(FamilyType.Exp)
+        }
     }
 
     const upAllItems = () => {
@@ -129,15 +165,15 @@
             return
         }
         if (type == MemberType.Family) {
-            showData.familys.forEach(member => {
+            showData.members.familys.forEach(member => {
                 upAllAttr(member)
             })
         } else if (type == MemberType.Spouse) {
-            showData.spouses.forEach(member => {
+            showData.members.spouses.forEach(member => {
                 upAllAttr(member)
             })
         } else if (type == MemberType.Guest) {
-            showData.guests.forEach(member => {
+            showData.members.guests.forEach(member => {
                 upAllAttr(member)
             })
         }
@@ -148,15 +184,15 @@
             return
         }
         if (type == MemberType.Family) {
-            showData.familys.forEach(member => {
+            showData.members.familys.forEach(member => {
                 upAge18(member)
             })
         } else if (type == MemberType.Spouse) {
-            showData.spouses.forEach(member => {
+            showData.members.spouses.forEach(member => {
                 upAge18(member)
             })
         } else if (type == MemberType.Guest) {
-            showData.guests.forEach(member => {
+            showData.members.guests.forEach(member => {
                 upAge18(member)
             })
         }
@@ -167,7 +203,7 @@
             return
         }
         if (type === MemberType.Guest) {
-            showData.guests.forEach(member => {
+            showData.members.guests.forEach(member => {
                 member.payment = '0'
             })
         }
@@ -202,17 +238,8 @@
             game.parse(text as string)
             console.log('解析结果:', game)
             selected.value = true
-
+            setShowData()
             //  填充展示
-            showData.familys = getMembers(MemberType.Family)
-            showData.spouses = getMembers(MemberType.Spouse)
-            showData.guests = getMembers(MemberType.Guest)
-            showData.items = getItems()
-            showData.currency = {
-                [CurrencyType.Money]: getCurrency(CurrencyType.Money),
-                [CurrencyType.YuanBao]: getCurrency(CurrencyType.YuanBao)
-            }
-            showData.NuLi = getNuLi()
         } catch (error) {
             console.error('解析失败:', error)
             showMessage('文件格式错误，请确认是有效的JSON文件')
@@ -220,13 +247,13 @@
     }
 
     const updateData = () => {
-        showData.familys.forEach(member => {
+        showData.members.familys.forEach(member => {
             updateMember(member)
         })
-        showData.spouses.forEach(member => {
+        showData.members.spouses.forEach(member => {
             updateMember(member)
         })
-        showData.guests.forEach(member => {
+        showData.members.guests.forEach(member => {
             updateMember(member)
         })
         for (const key in showData.currency) {
@@ -238,6 +265,10 @@
             setItem(key as CurrencyType, value)
         }
         updateNuli(showData.NuLi)
+        for (const key in showData.family) {
+            const value = showData.family[key]
+            updateFamily(key as FamilyType, String(value))
+        }
     }
     const saveFile = async () => {
         if (!game.parsed) {
@@ -269,7 +300,7 @@
 </script>
 
 <template>
-    <div style="padding: 10px">
+    <div style="justify-content: center">
         <h1>house-of-legacy</h1>
         <div style="display: flex; justify-content: center; gap: 1rem">
             <FileUpload
@@ -292,8 +323,26 @@
                 />
             </ButtonGroup>
         </div>
-        <div v-if="selected">
+        <div
+            v-if="selected"
+            style="width: 80%; margin: 0 auto"
+        >
             <div class="editpannel">
+                <Panel :header="(showData.family[FamilyType.SurName] as string) + '家'">
+                    <div style="display: grid; grid-column: 1; gap: 4px">
+                        <template v-for="(_, type) in showData.family">
+                            <InputGroup v-if="type != FamilyType.SurName">
+                                <InputGroupAddon>
+                                    {{ FamilyTypeName[type] }}
+                                </InputGroupAddon>
+                                <InputNumber
+                                    :min="0"
+                                    v-model="showData.family[type] as number"
+                                />
+                            </InputGroup>
+                        </template>
+                    </div>
+                </Panel>
                 <Panel header="资源">
                     <div style="display: grid; grid-column: 1; gap: 4px">
                         <template v-for="(_, type) in showData.currency">
@@ -382,17 +431,18 @@
                         </ButtonGroup>
                     </template>
                     <DataTable
+                        class="card"
                         :value="getShowData(type)"
                         v-model:editingRows="editingRows"
-                        editMode="row"
-                        @row-edit-save="onRowEditSave"
+                        editMode="cell"
+                        @cell-edit-complete="onEditSave"
                         size="small"
                         stripedRows
-                        tableStyle="min-width: 50rem"
                     >
                         <Column
                             field="name"
                             header="名字"
+                            style="width: 8rem"
                         >
                             <template #body="{ data }">
                                 <span v-if="type === MemberType.Family"
@@ -404,6 +454,7 @@
                         <Column
                             field="gender"
                             header="性别"
+                            style="width: 6rem"
                         >
                             <template #body="{ data }">
                                 <OverlayBadge
@@ -416,23 +467,11 @@
                                 </OverlayBadge>
                                 <span v-else>{{ data.gender === '1' ? '男' : '女' }}</span>
                             </template>
-                            <template #editor="{ data }">
-                                <Select
-                                    v-model="data.gender"
-                                    :options="[
-                                        { label: '男', value: '1' },
-                                        { label: '女', value: '0' }
-                                    ]"
-                                    optionLabel="label"
-                                    optionValue="value"
-                                    size="small"
-                                    fluid
-                                />
-                            </template>
                         </Column>
                         <Column
                             field="rank"
                             header="爵位"
+                            style="width: 6rem"
                             v-if="type === MemberType.Family"
                         >
                             <template #body="{ data }">
@@ -456,6 +495,7 @@
                         <Column
                             field="reputation"
                             header="声誉"
+                            style="width: 5rem"
                         >
                             <template #editor="{ data, field }">
                                 <InputNumber
@@ -470,14 +510,15 @@
                         <Column
                             field="stamina"
                             header="体力"
+                            style="width: 4rem"
                         />
                         <Column
                             field="age"
                             header="年龄"
+                            style="width: 5rem"
                         >
                             <template #body="{ data }"> {{ data.age }} / {{ data.life }} </template>
                             <template #editor="{ data }">
-                                {{ data.age }}/
                                 <InputNumber
                                     v-model="data.life"
                                     :min="data.age"
@@ -499,6 +540,7 @@
                             <Column
                                 :field="field"
                                 :header="header"
+                                style="width: 5rem"
                             >
                                 <template #editor="{ data, field }">
                                     <InputNumber
@@ -514,6 +556,7 @@
                         <Column
                             field="nature"
                             header="性格"
+                            style="width: 7rem"
                         >
                             <template #body="{ data }">
                                 {{
@@ -535,6 +578,7 @@
                         <Column
                             field="talent"
                             header="天赋"
+                            style="width: 6rem"
                         >
                             <template #body="{ data }">
                                 {{
@@ -555,7 +599,8 @@
                         </Column>
                         <Column
                             field="talentValue"
-                            header="天赋数值"
+                            header="天赋值"
+                            style="width: 5rem"
                         >
                             <template #editor="{ data }">
                                 <InputNumber
@@ -571,6 +616,7 @@
                         <Column
                             field="skill"
                             header="技能"
+                            style="width: 6rem"
                         >
                             <template #body="{ data }">
                                 {{
@@ -591,7 +637,8 @@
                         </Column>
                         <Column
                             field="skillValue"
-                            header="技能数值"
+                            header="技能值"
+                            style="width: 5rem"
                         >
                             <template #editor="{ data }">
                                 <InputNumber
@@ -618,6 +665,7 @@
                             <Column
                                 :field="field"
                                 :header="header"
+                                style="width: 5rem"
                             >
                                 <template #editor="{ data, field }">
                                     <InputNumber
@@ -634,6 +682,7 @@
                             field="payment"
                             header="薪酬"
                             v-if="type === MemberType.Guest"
+                            style="width: 5rem"
                         >
                             <template #editor="{ data, field }">
                                 <InputNumber
@@ -647,6 +696,7 @@
                         <Column
                             field="status"
                             header="状态"
+                            style="width: 5rem"
                             v-if="type === MemberType.Family"
                         >
                             <template #body="{ data }">
@@ -666,8 +716,7 @@
                                 />
                             </template>
                         </Column>
-                        <Column :rowEditor="true" />
-                        <Column>
+                        <Column style="width: 8rem">
                             <template #body="{ data }">
                                 <ButtonGroup>
                                     <Button
@@ -696,6 +745,7 @@
                                         size="small"
                                         raised
                                         text
+                                        v-if="data.gender == 0 && data.pregnancy == '-1'"
                                     />
                                 </ButtonGroup>
                             </template>
@@ -709,7 +759,7 @@
     <Dialog
         v-model:visible="pregnantVisible"
         modal
-        header="Edit Profile"
+        header="选择对象"
         :style="{ width: '25rem' }"
     >
         <Select
