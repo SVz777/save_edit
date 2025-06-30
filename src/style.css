@@ -11,6 +11,11 @@ body {
     /* 允许文本选择但不允许编辑 */
     user-select: text;
     cursor: default;
+    caret-color: transparent;
+}
+
+input {
+    caret-color: auto;
 }
 
 a {
