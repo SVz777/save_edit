@@ -351,7 +351,6 @@ function updateInfo(member: Member) {
     }
 
     member.info = infoS.join('|')
-    console.log('update info: ', member.info)
 }
 
 export function updateMember(member: Member) {

@@ -101,7 +101,6 @@
     }
 
     const setShowData = () => {
-        console.log(getFiefs())
         showData.members.familys = getMembers(MemberType.Family)
         showData.members.spouses = getMembers(MemberType.Spouse)
         showData.members.guests = getMembers(MemberType.Guest)
@@ -148,7 +147,6 @@
     }
 
     const upAllItems = () => {
-        console.log(showData.items)
         for (const key in ItemType) {
             showData.items[ItemType[key as keyof typeof ItemType]] = 1000000
         }
@@ -239,14 +237,11 @@
         pregnantMember.value.pregnancy = '1'
         pregnantMember.value.pregnantChildrenParent = pregnantChildrenParent.value
         pregnantVisible.value = false
-        console.log('pregnant: ', pregnantMember.value, pregnantChildrenParent.value)
     }
 
     const parse = async () => {
-        console.log('parse')
         selected.value = false
         try {
-            console.log(fileupload.value)
             const files = fileupload.value.files
             if (files.length === 0) return
 
