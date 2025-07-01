@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store/gameStore'
 import * as _ from 'lodash'
+import { LocRanks } from './loc'
 
 // 定义常量对象
 export const MemberType = {
@@ -23,23 +24,10 @@ export const MemberRankOptions = (function (): { value: string; label: string }[
         '2': '侯',
         '3': '公'
     }
-    const locs = {
-        '1': '汉阳',
-        '2': '左亭',
-        '3': '华阳',
-        '4': '宛陵',
-        '5': '长罗',
-        '6': '安成',
-        '7': '太末',
-        '8': '盐渎',
-        '9': '霍人',
-        '10': '比苏',
-        '11': '新会',
-        '12': '越隽'
-    }
+
     const options: { value: string; label: string }[] = [{ value: '0|0', label: '无' }]
     // 遍历 ranks 对象的键值对
-    Object.entries(locs).map(([key, value]) => {
+    Object.entries(LocRanks).map(([key, value]) => {
         // 遍历 locs 对象的键值对
         Object.entries(ranks).map(([key2, value2]) => {
             // 将键值对组合成一个字符串，并添加到 options 数组中

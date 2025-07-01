@@ -76,6 +76,7 @@ declare module 'vue' {
 }
 declare global {
     interface Window {
-        game: any
+        game: any,
+        [key: string]: any,
     }
 }

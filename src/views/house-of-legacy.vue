@@ -25,9 +25,10 @@
         updateFamily
     } from '@/types/house-of-legacy/family'
     import { getItems, ItemType, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
-    import { computed, reactive, ref } from 'vue'
+    import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
     import { useToast } from 'primevue/usetoast'
     import { getNuLi, updateNuli } from '@/types/house-of-legacy/nuli'
+    import { getFiefs, updateFief, type Fief } from '@/types/house-of-legacy/fief'
     const fileupload = ref()
     const { game } = useGameStore()
     const toast = useToast()
@@ -41,19 +42,6 @@
     const onEditSave = (event: any) => {
         let { data, field, newValue } = event
         data[field] = newValue
-        // console.log(event)
-        // const type = newData.type
-        // if (type == MemberType.Family) {
-        //     const idx = showData.members.familys.findIndex((m: any) => m.id === newData.id)
-        //     showData.members.familys[idx] = newData
-        // } else if (type == MemberType.Spouse) {
-        //     const idx = showData.members.spouses.findIndex((m: any) => m.id === newData.id)
-        //     showData.members.spouses[idx] = newData
-        // } else if (type == MemberType.Guest) {
-        //     const idx = showData.members.guests.findIndex((m: any) => m.id === newData.id)
-        //     showData.members.guests[idx] = newData
-        // }
-        console.log(showData)
     }
 
     const showMessage = (msg: string) => {
@@ -77,6 +65,7 @@
             [FamilyType.Exp]: number
         }
         NuLi: number
+        fiefs: Map<string, Fief>
     }
     const showData = reactive<IShowData>({
         members: {
@@ -87,9 +76,12 @@
         items: {},
         currency: {},
         family: {},
-        NuLi: 0
+        NuLi: 0,
+        fiefs: new Map()
     })
-
+    onMounted(() => {
+        window['showData'] = showData
+    })
     const familyMembersOptions = computed(() => {
         return showData.members.familys.map(m => ({
             label: m.name,
@@ -109,6 +101,7 @@
     }
 
     const setShowData = () => {
+        console.log(getFiefs())
         showData.members.familys = getMembers(MemberType.Family)
         showData.members.spouses = getMembers(MemberType.Spouse)
         showData.members.guests = getMembers(MemberType.Guest)
@@ -122,6 +115,35 @@
             [FamilyType.SurName]: getFamily(FamilyType.SurName),
             [FamilyType.Level]: getFamily(FamilyType.Level),
             [FamilyType.Exp]: getFamily(FamilyType.Exp)
+        }
+        showData.fiefs = getFiefs()
+    }
+
+    const updateData = () => {
+        showData.members.familys.forEach(member => {
+            updateMember(member)
+        })
+        showData.members.spouses.forEach(member => {
+            updateMember(member)
+        })
+        showData.members.guests.forEach(member => {
+            updateMember(member)
+        })
+        for (const key in showData.currency) {
+            const value = showData.currency[key]
+            updateCurrency(key as CurrencyType, value)
+        }
+        for (const key in showData.items) {
+            const value = showData.items[key]
+            setItem(key as CurrencyType, value)
+        }
+        updateNuli(showData.NuLi)
+        for (const key in showData.family) {
+            const value = showData.family[key]
+            updateFamily(key as FamilyType, String(value))
+        }
+        for (const [key, value] of showData.fiefs) {
+            updateFief(key, value.unlocked)
         }
     }
 
@@ -246,30 +268,6 @@
         }
     }
 
-    const updateData = () => {
-        showData.members.familys.forEach(member => {
-            updateMember(member)
-        })
-        showData.members.spouses.forEach(member => {
-            updateMember(member)
-        })
-        showData.members.guests.forEach(member => {
-            updateMember(member)
-        })
-        for (const key in showData.currency) {
-            const value = showData.currency[key]
-            updateCurrency(key as CurrencyType, value)
-        }
-        for (const key in showData.items) {
-            const value = showData.items[key]
-            setItem(key as CurrencyType, value)
-        }
-        updateNuli(showData.NuLi)
-        for (const key in showData.family) {
-            const value = showData.family[key]
-            updateFamily(key as FamilyType, String(value))
-        }
-    }
     const saveFile = async () => {
         if (!game.parsed) {
             showMessage('没有可保存的数据')
@@ -302,6 +300,7 @@
 <template>
     <div style="justify-content: center">
         <h1>house-of-legacy</h1>
+        <Divider />
         <div style="display: flex; justify-content: center; gap: 1rem">
             <FileUpload
                 ref="fileupload"
@@ -323,46 +322,64 @@
                 />
             </ButtonGroup>
         </div>
+
         <div
             v-if="selected"
             style="width: 80%; margin: 0 auto"
         >
+            <Divider />
             <div class="editpannel">
                 <Panel :header="(showData.family[FamilyType.SurName] as string) + '家'">
                     <div style="display: grid; grid-column: 1; gap: 4px">
                         <template v-for="(_, type) in showData.family">
-                            <InputGroup v-if="type != FamilyType.SurName">
-                                <InputGroupAddon>
-                                    {{ FamilyTypeName[type] }}
-                                </InputGroupAddon>
+                            <FloatLabel
+                                variant="on"
+                                v-if="type != FamilyType.SurName"
+                            >
                                 <InputNumber
                                     :min="0"
                                     v-model="showData.family[type] as number"
                                 />
-                            </InputGroup>
+                                <label> {{ FamilyTypeName[type] }}</label>
+                            </FloatLabel>
                         </template>
+                        <h4>封地解锁</h4>
+                        <div style="display: flex; justify-content: center; gap: 0.5rem">
+                            <template v-for="[id, fief] of showData.fiefs">
+                                <div
+                                    v-if="fief.name != ''"
+                                    :key="id"
+                                >
+                                    <Checkbox
+                                        v-model="fief.unlocked"
+                                        :inputId="id"
+                                        :name="fief.name"
+                                        binary
+                                    />
+                                    <label :for="id">{{ fief.name }}</label>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </Panel>
                 <Panel header="资源">
                     <div style="display: grid; grid-column: 1; gap: 4px">
                         <template v-for="(_, type) in showData.currency">
-                            <InputGroup>
-                                <InputGroupAddon>
-                                    {{ CurrencyTypeName[type] }}
-                                </InputGroupAddon>
+                            <FloatLabel variant="on">
                                 <InputNumber
                                     :min="0"
                                     v-model="showData.currency[type]"
                                 />
-                            </InputGroup>
+                                <label> {{ CurrencyTypeName[type] }}</label>
+                            </FloatLabel>
                         </template>
-                        <InputGroup>
-                            <InputGroupAddon> 奴隶 </InputGroupAddon>
+                        <FloatLabel variant="on">
                             <InputNumber
                                 :min="0"
                                 v-model="showData.NuLi"
                             />
-                        </InputGroup>
+                            <label> 奴隶 </label>
+                        </FloatLabel>
                     </div>
                 </Panel>
                 <Panel header="物品">
@@ -386,18 +403,19 @@
                             "
                         >
                             <template v-for="type in ItemType">
-                                <InputGroup>
-                                    <InputGroupAddon> {{ ItemTypeName[type] }} </InputGroupAddon>
+                                <FloatLabel variant="on">
                                     <InputNumber
                                         :min="0"
                                         v-model="showData.items[type]"
                                     />
-                                </InputGroup>
+                                    <label> {{ ItemTypeName[type] }} </label>
+                                </FloatLabel>
                             </template>
                         </div>
                     </ScrollPanel>
                 </Panel>
             </div>
+            <Divider />
             <template v-for="type in MemberType">
                 <Panel toggleable>
                     <template #header>
