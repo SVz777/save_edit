@@ -1,5 +1,5 @@
 import { useGameStore } from '@/store/gameStore'
-import { Towns } from './loc'
+import { Towns } from './consts'
 
 const key = 'Fengdi_now'
 
@@ -17,12 +17,12 @@ export function getFiefs(): Map<string, Fief> {
     const fiefs = game.get(key, 'value') as string[]
     const ret = new Map<string, Fief>()
     fiefs.forEach((fief: any, idx: number) => {
-        if(idx == 0) {
+        if (idx == 0) {
             // 第一个不是
             return
         }
         const [unlocked] = fief as [string]
-        ret.set(String(idx), { id: String(idx), name: Towns[String(idx-1) as keyof typeof Towns]??'', unlocked: unlocked == '1' })
+        ret.set(String(idx), { id: String(idx), name: Towns[String(idx - 1) as keyof typeof Towns] ?? '', unlocked: unlocked == '1' })
     })
     return ret
 }
@@ -32,5 +32,5 @@ export function updateFief(id: string, value: boolean) {
     if (!game.parsed) {
         return ''
     }
-    return game.set(value ? '1' : '0', key, 'value', id,0)
+    return game.set(value ? '1' : '0', key, 'value', id, 0)
 }

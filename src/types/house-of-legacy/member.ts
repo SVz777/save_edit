@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore'
 import * as _ from 'lodash'
-import { LocRanks } from './loc'
+import { LocRanks, Ranks } from './consts'
 
 // 定义常量对象
 export const MemberType = {
@@ -18,98 +18,6 @@ export const MemberTypeName: Record<MemberType, string> = {
     [MemberType.Guest]: '门客成员'
 }
 
-export const MemberRankOptions = (function (): { value: string; label: string }[] {
-    const ranks = {
-        '1': '伯',
-        '2': '侯',
-        '3': '公'
-    }
-
-    const options: { value: string; label: string }[] = [{ value: '0|0', label: '无' }]
-    // 遍历 ranks 对象的键值对
-    Object.entries(LocRanks).map(([key, value]) => {
-        // 遍历 locs 对象的键值对
-        Object.entries(ranks).map(([key2, value2]) => {
-            // 将键值对组合成一个字符串，并添加到 options 数组中
-            options.push({ value: `${key2}|${key}`, label: `${value}${value2}` })
-        })
-    })
-    return options
-})()
-
-export const MemberTalentOptions = [
-    { value: '0', label: '无' },
-    { value: '1', label: '文' },
-    { value: '2', label: '武' },
-    { value: '3', label: '商' },
-    { value: '4', label: '艺' }
-]
-export const MemberSkillOptions = [
-    { value: '0', label: '无' },
-    { value: '1', label: '巫' },
-    { value: '2', label: '医' },
-    { value: '3', label: '相' },
-    { value: '4', label: '卜' },
-    { value: '5', label: '魅' },
-    { value: '6', label: '工' }
-]
-export const MemberLikeOptions = [
-    { value: '0', label: '香粉' },
-    { value: '1', label: '书法' },
-    { value: '2', label: '丹青' },
-    { value: '3', label: '文玩' },
-    { value: '4', label: '茶具' },
-    { value: '5', label: '香具' },
-    { value: '6', label: '瓷器' },
-    { value: '7', label: '美酒' },
-    { value: '8', label: '琴瑟' },
-    { value: '9', label: '毛皮' }
-]
-export const MemberNatureOptions = [
-    { value: '0', label: '无' },
-    { value: '1', label: '骄傲' },
-    { value: '2', label: '刚正' },
-    { value: '3', label: '活泼' },
-    { value: '4', label: '善良' },
-    { value: '5', label: '真诚' },
-    { value: '6', label: '洒脱' },
-    { value: '7', label: '高冷' },
-    { value: '8', label: '自卑' },
-    { value: '9', label: '怯懦' },
-    { value: '10', label: '腼腆' },
-    { value: '11', label: '凶狠' },
-    { value: '12', label: '善变' },
-    { value: '13', label: '忧郁' },
-    { value: '14', label: '多疑' }
-]
-
-export const MemberStatusOptions = [
-    { value: '0', label: '正常' },
-    { value: '1', label: '被贬' },
-    { value: '2', label: '游学二个月' },
-    { value: '3', label: '杖责' },
-    { value: '4', label: '徒刑' },
-    { value: '5', label: '流放三千里' },
-    { value: '6', label: '流放二千里' },
-    { value: '7', label: '流放一千里' },
-    { value: '8', label: '流放五百里' },
-    { value: '9', label: '斩首' },
-    { value: '10', label: '出征' },
-    { value: '11', label: '游历剩 1 月' },
-    { value: '12', label: '省亲 1 月' },
-    { value: '13', label: '离家出走 1 月' },
-    { value: '14', label: '闭关著数 1 月' },
-    { value: '15', label: '派驻商会' },
-    { value: '16', label: '外出为官' },
-    { value: '17', label: '写信做工' },
-    { value: '18', label: '街头交易' },
-    { value: '19', label: '打探消息' },
-    { value: '20', label: '散播流言' },
-    { value: '21', label: '私人教习' },
-    { value: '22', label: '戏台演出' },
-    { value: '23', label: '私塾教学' },
-    { value: '24', label: '武场教学' }
-]
 
 export const MemberIndex: Record<MemberType, Record<string, any[]>> = {
     [MemberType.Family]: {

@@ -5,12 +5,7 @@
         MemberType,
         MemberTypeName,
         getMembers,
-        updateMember,
-        MemberRankOptions,
-        MemberTalentOptions,
-        MemberSkillOptions,
-        MemberStatusOptions,
-        MemberNatureOptions
+        updateMember
     } from '@/types/house-of-legacy/member'
     import {
         CurrencyType,
@@ -24,11 +19,20 @@
         getFamily,
         updateFamily
     } from '@/types/house-of-legacy/family'
-    import { getItems, ItemType, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
+    import { getItems, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
     import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
     import { useToast } from 'primevue/usetoast'
     import { getNuLi, updateNuli } from '@/types/house-of-legacy/nuli'
     import { getFiefs, updateFief, type Fief } from '@/types/house-of-legacy/fief'
+    import {
+        ItemType,
+        LocRanks,
+        MemberNatures,
+        MemberSkills,
+        MemberStatus,
+        MemberTalents,
+        Ranks
+    } from '@/types/house-of-legacy/consts'
     const fileupload = ref()
     const { game } = useGameStore()
     const toast = useToast()
@@ -54,7 +58,7 @@
             spouses: Member[]
             guests: Member[]
         }
-        items: { [key: ItemType]: number }
+        items: Record<ItemType, number>
         currency: {
             [CurrencyType.Money]: number
             [CurrencyType.YuanBao]: number
@@ -73,7 +77,7 @@
             spouses: [],
             guests: []
         },
-        items: {},
+        items: {} as Record<ItemType, number>,
         currency: {},
         family: {},
         NuLi: 0,
@@ -87,6 +91,39 @@
             label: m.name,
             value: m.id.toString() // 根据组件需求转换类型
         }))
+    })
+
+    const MemberRankOptions = computed(() => {
+        const options: { value: string; label: string }[] = [{ value: '0|0', label: '无' }]
+        // 遍历 ranks 对象的键值对
+        Object.entries(LocRanks).map(([key, value]) => {
+            // 遍历 locs 对象的键值对
+            Object.entries(Ranks).map(([key2, value2]) => {
+                // 将键值对组合成一个字符串，并添加到 options 数组中
+                options.push({ value: `${key2}|${key}`, label: `${value}${value2}` })
+            })
+        })
+        return options
+    })
+    const MemberTalentOptions = computed<any[]>(() => {
+        return Object.entries(MemberTalents).map(([key, value]) => {
+            return { value: key, label: value }
+        })
+    })
+    const MemberSkillOptions = computed<any[]>(() => {
+        return Object.entries(MemberSkills).map(([key, value]) => {
+            return { value: key, label: value }
+        })
+    })
+    const MemberStatusOptions = computed<any[]>(() => {
+        return Object.entries(MemberStatus).map(([key, value]) => {
+            return { value: key, label: value }
+        })
+    })
+    const MemberNatureOptions = computed<any[]>(() => {
+        return Object.entries(MemberNatures).map(([key, value]) => {
+            return { value: key, label: value }
+        })
     })
 
     const getShowData = (type: MemberType): Member[] => {
@@ -133,8 +170,8 @@
             updateCurrency(key as CurrencyType, value)
         }
         for (const key in showData.items) {
-            const value = showData.items[key]
-            setItem(key as CurrencyType, value)
+            const value = showData.items[key as ItemType]
+            setItem(key as ItemType, value)
         }
         updateNuli(showData.NuLi)
         for (const key in showData.family) {
@@ -295,7 +332,6 @@
 <template>
     <div style="justify-content: center">
         <h1>house-of-legacy</h1>
-        <Divider />
         <div style="display: flex; justify-content: center; gap: 1rem">
             <FileUpload
                 ref="fileupload"
@@ -339,7 +375,13 @@
                             </FloatLabel>
                         </template>
                         <h4>封地解锁</h4>
-                        <div style="display: flex; justify-content: center; gap: 0.5rem">
+                        <div
+                            style="
+                                display: grid;
+                                grid-template-columns: repeat(3, 1fr);
+                                gap: 0.5rem;
+                            "
+                        >
                             <template v-for="[id, fief] of showData.fiefs">
                                 <div
                                     v-if="fief.name != ''"
@@ -397,7 +439,7 @@
                                 padding: 5px;
                             "
                         >
-                            <template v-for="type in ItemType">
+                            <template v-for="(type) in ItemType">
                                 <FloatLabel variant="on">
                                     <InputNumber
                                         :min="0"
@@ -410,7 +452,6 @@
                     </ScrollPanel>
                 </Panel>
             </div>
-            <Divider />
             <template v-for="type in MemberType">
                 <Panel toggleable>
                     <template #header>
@@ -797,7 +838,7 @@
 <style scoped>
     .editpannel {
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
         gap: 1rem;
         margin-top: 1rem;
         margin-bottom: 1rem;
