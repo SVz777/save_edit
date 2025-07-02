@@ -1,6 +1,5 @@
 import { useGameStore } from '@/store/gameStore'
 import * as _ from 'lodash'
-import { LocRanks, Ranks } from './consts'
 
 // 定义常量对象
 export const MemberType = {

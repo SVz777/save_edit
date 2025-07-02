@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, computed } from 'vue'
+    import { ref } from 'vue'
 
     interface CardInfo {
         img: string
@@ -19,7 +19,7 @@
     <h1 class="title">存档修改器</h1>
     <div class="container">
         <template
-            v-for="(card, index) in cards"
+            v-for="(card) in cards"
             :key="index"
         >
             <Card class="card">
