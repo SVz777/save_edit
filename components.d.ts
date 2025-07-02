@@ -18,8 +18,6 @@ declare module 'vue' {
     Divider: typeof import('primevue/divider')['default']
     FileUpload: typeof import('primevue/fileupload')['default']
     FloatLabel: typeof import('primevue/floatlabel')['default']
-    InputGroup: typeof import('primevue/inputgroup')['default']
-    InputGroupAddon: typeof import('primevue/inputgroupaddon')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']
     OverlayBadge: typeof import('primevue/overlaybadge')['default']
     Panel: typeof import('primevue/panel')['default']

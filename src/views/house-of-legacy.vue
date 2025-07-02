@@ -20,7 +20,7 @@
         updateFamily
     } from '@/types/house-of-legacy/family'
     import { getItems, ItemTypeName, setItem } from '@/types/house-of-legacy/item'
-    import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
+    import { computed, onMounted, reactive, ref } from 'vue'
     import { useToast } from 'primevue/usetoast'
     import { getNuLi, updateNuli } from '@/types/house-of-legacy/nuli'
     import { getFiefs, updateFief, type Fief } from '@/types/house-of-legacy/fief'
@@ -59,15 +59,8 @@
             guests: Member[]
         }
         items: Record<ItemType, number>
-        currency: {
-            [CurrencyType.Money]: number
-            [CurrencyType.YuanBao]: number
-        }
-        family: {
-            [FamilyType.SurName]: string
-            [FamilyType.Level]: number
-            [FamilyType.Exp]: number
-        }
+        currency: Record<CurrencyType, number>
+        family: Record<FamilyType, string | number>
         NuLi: number
         fiefs: Map<string, Fief>
     }
@@ -77,7 +70,7 @@
             spouses: [],
             guests: []
         },
-        items: {} as Record<ItemType, number>,
+        items: {},
         currency: {},
         family: {},
         NuLi: 0,
@@ -439,7 +432,7 @@
                                 padding: 5px;
                             "
                         >
-                            <template v-for="(type) in ItemType">
+                            <template v-for="type in ItemType">
                                 <FloatLabel variant="on">
                                     <InputNumber
                                         :min="0"
