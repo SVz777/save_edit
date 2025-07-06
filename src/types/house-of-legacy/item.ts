@@ -8,7 +8,12 @@ export const ItemTypeName: Record<ItemType, string> = {
     [ItemType.Fertilizer]: '肥料',
     [ItemType.Food]: '粮食',
     [ItemType.Vegetables]: '蔬菜',
-    [ItemType.Meat]: '肉食'
+    [ItemType.Meat]: '肉食',
+    [ItemType.Bronze]: '青铜',
+    [ItemType.Iron]: '黑铁',
+    [ItemType.Pewter]: '白锡',
+    [ItemType.Sulfur]: '硫磺',
+    [ItemType.Saltpeter]: '硝石',
 }
 
 export function getItems(): { [key: ItemType]: number } {
